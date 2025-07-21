@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="scans-container">
+    <h1>🔍 Scan History</h1>
+    
+    {% if scans %}
+    <div class="scans-table">
+        {% for scan in scans %}
+        <div class="scan-row">
+            <div class="scan-info">
+                <div class="scan-target">
+                    <strong>{{ scan.target }}</strong>
+                    {% if true %}
+                    <span class="scan-option">🌐 Subdomains</span>
+                    {% endif %}
+                    {% if 0 > 0 %}
+                    <span class="scan-option">🎯 Fuzz({{ 0 }})</span>
+                    {% endif %}
+                </div>
+                <div class="scan-meta">
+                    <span>{{ scan.started_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                    {% if 0 > 0 %}
+                    <span class="vuln-indicator">{{ 0 }} vulns</span>
+                    {% endif %}
+                    {% if 0 > 0 %}
+                    <span class="subdomain-indicator">{{ 0 }} subdomains</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="scan-status">
+                <span class="status-badge status-{{ scan.status }}">
+                    {{ scan.status.upper() }}
+                </span>
+                {% if scan.status == 'running' %}
+                <span class="progress-mini">{{ scan.progress }}%</span>
+                {% endif %}
+            </div>
+            
+            <div class="scan-actions">
+                <a href="/scan/{{ scan.id }}" class="btn-small">📊 View Details</a>
+                {% if 0 > 0 or 0 > 0 %}
+                <div class="action-buttons">
+                    {% if 0 > 0 %}
+                    <button class="btn-small btn-warning" onclick="startBruteforce({{ scan.id }})">
+                        ⚔️ Bruteforce
+                    </button>
+                    {% endif %}
+                    {% if 0 == 0 and scan.status == 'completed' %}
+                    <button class="btn-small btn-info" onclick="startAdvancedFuzzing({{ scan.id }})">
+                        🎯 Deep Fuzz
+                    </button>
+                    {% endif %}
+                </div>
+                {% endif %}
+                <form method="POST" action="/scan/{{ scan.id }}/delete" style="display: inline;" 
+                      onsubmit="return confirm('Are you sure you want to delete this scan?')">
+                    <button type="submit" class="btn-small btn-danger">🗑️ Delete</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>📭 No scans found</p>
+        <a href="/" class="btn">🚀 Start Your First Scan</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Bruteforce Modal -->
+<div id="bruteforce-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h3>⚔️ Configure Bruteforce Attack</h3>
+        <div id="bruteforce-targets"></div>
+        <div class="modal-actions">
+            <button onclick="startBruteforceAttack()" class="btn">🚀 Start Attack</button>
+            <button onclick="closeBruteforceModal()" class="btn btn-secondary">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Deep Fuzzing Modal -->
+<div id="fuzzing-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h3>🎯 Advanced Directory Fuzzing</h3>
+        <div class="form-group">
+            <label>Wordlist:</label>
+            <select id="wordlist-select" class="form-control">
+                <option value="common">Common Directories</option>
+                <option value="medium">Medium Wordlist</option>
+                <option value="large">Large Wordlist</option>
+                <option value="custom">Custom Wordlist</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Max Depth:</label>
+            <select id="depth-select" class="form-control">
+                <option value="1">1 Level</option>
+                <option value="2">2 Levels</option>
+                <option value="3">3 Levels</option>
+                <option value="5">5 Levels</option>
+            </select>
+        </div>
+        <div class="modal-actions">
+            <button onclick="startDeepFuzzing()" class="btn">🚀 Start Fuzzing</button>
+            <button onclick="closeFuzzingModal()" class="btn btn-secondary">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.scans-table {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.scan-row {
+    background: rgba(0, 20, 0, 0.8);
+    border: 1px solid #00ff00;
+    border-radius: 5px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.scan-info {
+    flex: 1;
+}
+
+.scan-target strong {
+    color: #00ff00;
+    font-size: 1.1em;
+}
+
+.scan-option {
+    background: rgba(0, 255, 0, 0.2);
+    color: #00ff00;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.8em;
+    margin-left: 5px;
+}
+
+.scan-meta {
+    color: #888;
+    font-size: 0.9em;
+    margin-top: 5px;
+}
+
+.vuln-indicator {
+    background: rgba(255, 0, 0, 0.3);
+    color: #ff6666;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: bold;
+    margin-left: 10px;
+}
+
+.subdomain-indicator {
+    background: rgba(0, 255, 255, 0.3);
+    color: #00ffff;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 5px;
+}
+
+.scan-status {
+    text-align: center;
+    margin: 0 20px;
+}
+
+.progress-mini {
+    display: block;
+    font-size: 0.8em;
+    color: #ffcc00;
+    margin-top: 3px;
+}
+
+.scan-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 150px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.btn-small {
+    padding: 5px 10px;
+    font-size: 0.8em;
+    text-decoration: none;
+    border: 1px solid #00ff00;
+    background: rgba(0, 20, 0, 0.8);
+    color: #00ff00;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-small:hover {
+    background: rgba(0, 255, 0, 0.2);
+}
+
+.btn-warning {
+    border-color: #ffcc00;
+    color: #ffcc00;
+}
+
+.btn-warning:hover {
+    background: rgba(255, 204, 0, 0.2);
+}
+
+.btn-info {
+    border-color: #00ffff;
+    color: #00ffff;
+}
+
+.btn-info:hover {
+    background: rgba(0, 255, 255, 0.2);
+}
+
+.btn-danger {
+    border-color: #ff6666;
+    color: #ff6666;
+}
+
+.btn-danger:hover {
+    background: rgba(255, 102, 102, 0.2);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #888;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: rgba(0, 20, 0, 0.95);
+    border: 2px solid #00ff00;
+    border-radius: 5px;
+    padding: 20px;
+    min-width: 400px;
+    max-width: 90%;
+}
+
+.modal-content h3 {
+    color: #00ff00;
+    margin-bottom: 15px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.btn-secondary {
+    background: #333;
+    border-color: #666;
+    color: #ccc;
+}
+
+.btn-secondary:hover {
+    background: #444;
+}
+</style>
+
+<script>
+let currentScanId = null;
+
+function startBruteforce(scanId) {
+    currentScanId = scanId;
+    
+    // Fetch available bruteforce targets for this scan
+    fetch(`/api/scan/${scanId}/bruteforce_targets`)
+        .then(response => response.json())
+        .then(data => {
+            const targets = document.getElementById('bruteforce-targets');
+            targets.innerHTML = '';
+            
+            if (data.targets && data.targets.length > 0) {
+                data.targets.forEach(target => {
+                    const div = document.createElement('div');
+                    div.className = 'bruteforce-target';
+                    div.innerHTML = `
+                        <label>
+                            <input type="checkbox" value="${target.service}:${target.port}" checked>
+                            ${target.service} (${target.host}:${target.port})
+                        </label>
+                    `;
+                    targets.appendChild(div);
+                });
+            } else {
+                targets.innerHTML = '<p>No suitable targets for bruteforce found.</p>';
+            }
+            
+            document.getElementById('bruteforce-modal').style.display = 'flex';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading bruteforce targets');
+        });
+}
+
+function startAdvancedFuzzing(scanId) {
+    currentScanId = scanId;
+    document.getElementById('fuzzing-modal').style.display = 'flex';
+}
+
+function closeBruteforceModal() {
+    document.getElementById('bruteforce-modal').style.display = 'none';
+}
+
+function closeFuzzingModal() {
+    document.getElementById('fuzzing-modal').style.display = 'none';
+}
+
+function startBruteforceAttack() {
+    const targets = document.querySelectorAll('#bruteforce-targets input:checked');
+    const selectedTargets = Array.from(targets).map(t => t.value);
+    
+    if (selectedTargets.length === 0) {
+        alert('Please select at least one target');
+        return;
+    }
+    
+    fetch(`/api/scan/${currentScanId}/start_bruteforce`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targets: selectedTargets })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Bruteforce attack started successfully');
+            closeBruteforceModal();
+            location.reload();
+        } else {
+            alert('Error starting bruteforce: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error starting bruteforce attack');
+    });
+}
+
+function startDeepFuzzing() {
+    const wordlist = document.getElementById('wordlist-select').value;
+    const depth = document.getElementById('depth-select').value;
+    
+    fetch(`/api/scan/${currentScanId}/start_fuzzing`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wordlist, depth: parseInt(depth) })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Advanced fuzzing started successfully');
+            closeFuzzingModal();
+            location.reload();
+        } else {
+            alert('Error starting fuzzing: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error starting fuzzing');
+    });
+}
+</script>
+{% endblock %}

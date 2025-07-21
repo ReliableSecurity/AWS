@@ -1,0 +1,62 @@
+{
+  "ip": "64.233.163.138",
+  "subdomains": [
+    "google.com",
+    "www.google.com",
+    "mail.google.com",
+    "admin.google.com",
+    "api.google.com",
+    "shop.google.com",
+    "blog.google.com"
+  ],
+  "tcp_ports": [
+    80,
+    443
+  ],
+  "udp_ports": [
+    53,
+    67,
+    68,
+    69,
+    123,
+    135,
+    137,
+    138,
+    139,
+    161,
+    162,
+    389,
+    500,
+    514,
+    520,
+    1434,
+    1900,
+    5353
+  ],
+  "services": {
+    "80": "HTTP",
+    "443": "HTTPS",
+    "53": "DNS",
+    "67": "Unknown",
+    "68": "Unknown",
+    "69": "Unknown",
+    "123": "Unknown",
+    "135": "Unknown",
+    "137": "Unknown",
+    "138": "Unknown",
+    "139": "Unknown",
+    "161": "Unknown",
+    "162": "Unknown",
+    "389": "Unknown",
+    "500": "Unknown",
+    "514": "Unknown",
+    "520": "Unknown",
+    "1434": "Unknown",
+    "1900": "Unknown",
+    "5353": "Unknown"
+  },
+  "vulnerabilities": [
+    "Missing security headers on port 80: Strict-Transport-Security",
+    "Missing security headers on port 443: Strict-Transport-Security"
+  ]
+}

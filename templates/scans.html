@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akuma Advanced Pentest Scanner - Scans</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <canvas id="matrix"></canvas>
+    
+    <nav class="navbar">
+        <div class="nav-brand">
+            <h1>⚡ AKUMA PENTEST SCANNER</h1>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="/" class="nav-link">Dashboard</a></li>
+            <li><a href="/scans" class="nav-link active">Scans</a></li>
+            <li><a href="/notifications" class="nav-link">Notifications</a></li>
+            <li><a href="/logout" class="nav-link">Logout</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <header class="page-header">
+            <h1>🎯 PENTEST SCANS</h1>
+            <button class="btn btn-primary" onclick="showNewScanForm()">+ New Pentest Scan</button>
+        </header>
+
+        <!-- New Scan Form (Hidden by default) -->
+        <div id="newScanForm" class="scan-form" style="display: none;">
+            <h2>🚀 Create New Pentest Scan</h2>
+            
+            <form id="scanForm">
+                <div class="form-group">
+                    <label for="scanName">📝 Scan Name *</label>
+                    <input type="text" id="scanName" name="name" placeholder="e.g., Company XYZ Pentest" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="targets">🎯 Targets *</label>
+                    <textarea id="targets" name="targets" placeholder="Enter targets (one per line):&#10;example.com&#10;sub.example.com&#10;192.168.1.100" required></textarea>
+                    <small>Enter domains or IP addresses, one per line</small>
+                </div>
+
+                <div class="form-group">
+                    <label>🔧 Pentest Options</label>
+                    <div class="options-grid">
+                        <div class="option-card">
+                            <div class="switch-container">
+                                <input type="checkbox" id="subdomains" name="subdomains" class="switch">
+                                <label for="subdomains" class="switch-label"></label>
+                            </div>
+                            <div class="option-info">
+                                <h4>🕸️ Subdomain Enumeration</h4>
+                                <p>Automatically discover and scan subdomains using multiple tools (Subfinder, Amass)</p>
+                            </div>
+                        </div>
+
+                        <div class="option-card">
+                            <div class="switch-container">
+                                <input type="checkbox" id="fuzzing" name="fuzzing" class="switch">
+                                <label for="fuzzing" class="switch-label"></label>
+                            </div>
+                            <div class="option-info">
+                                <h4>📁 Directory Fuzzing</h4>
+                                <p>Brute-force directories and files using Feroxbuster</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="hideNewScanForm()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">🚀 Start Pentest Scan</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Scan Phases Legend -->
+        <div class="phases-legend">
+            <h3>🔍 Pentest Phases</h3>
+            <div class="phases-grid">
+                <div class="phase-item">
+                    <span class="phase-icon">🎯</span>
+                    <div>
+                        <strong>Phase 1: Reconnaissance</strong>
+                        <p>Subdomain enumeration, port scanning, service fingerprinting</p>
+                    </div>
+                </div>
+                <div class="phase-item">
+                    <span class="phase-icon">🌐</span>
+                    <div>
+                        <strong>Phase 2: Web Discovery</strong>
+                        <p>Directory fuzzing, robots.txt, sitemap analysis, form discovery</p>
+                    </div>
+                </div>
+                <div class="phase-item">
+                    <span class="phase-icon">🛡️</span>
+                    <div>
+                        <strong>Phase 3: Vulnerability Assessment</strong>
+                        <p>Security testing, exploit verification (coming soon)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scans List -->
+        <div class="scans-section">
+            <h2>📋 Your Scans</h2>
+            
+            <div class="scans-list" id="scansList">
+                {% for scan in scans %}
+                <div class="scan-card" data-scan-id="{{ scan.id }}">
+                    <div class="scan-header">
+                        <div class="scan-title">
+                            <h3>{{ scan.name }}</h3>
+                            <span class="scan-id">#{{ scan.id }}</span>
+                        </div>
+                        <div class="scan-status">
+                            <span class="status-badge status-{{ scan.status }}">{{ scan.status | title }}</span>
+                        </div>
+                    </div>
+
+                    <div class="scan-details">
+                        <div class="scan-info">
+                            <div class="info-item">
+                                <span class="info-label">🎯 Targets:</span>
+                                <span class="info-value">{{ scan.get_targets() | length }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">📅 Started:</span>
+                                <span class="info-value">{{ scan.started_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                            </div>
+                            {% if scan.completed_at %}
+                            <div class="info-item">
+                                <span class="info-label">✅ Completed:</span>
+                                <span class="info-value">{{ scan.completed_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        {% if scan.status == 'running' %}
+                        <div class="scan-progress">
+                            <div class="progress-info">
+                                <span>Progress: <span class="progress-percent">{{ scan.progress }}%</span></span>
+                                <span class="current-phase">{{ scan.current_phase }}</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ scan.progress }}%"></div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="targets-preview">
+                            <strong>Targets:</strong>
+                            {% for target in scan.get_targets()[:3] %}
+                                <span class="target-tag">{{ target }}</span>
+                            {% endfor %}
+                            {% if scan.get_targets() | length > 3 %}
+                                <span class="target-more">+{{ scan.get_targets() | length - 3 }} more</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="scan-actions">
+                        <a href="/scan/{{ scan.id }}" class="btn btn-view">👀 View Details</a>
+                        {% if scan.status in ['completed', 'failed'] %}
+                        <form method="POST" action="/delete_scan/{{ scan.id }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this scan?')">
+                            <button type="submit" class="btn btn-danger">🗑️ Delete</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+
+                {% if not scans %}
+                <div class="empty-state">
+                    <h3>🚀 No scans yet</h3>
+                    <p>Create your first advanced pentest scan to get started!</p>
+                    <button class="btn btn-primary" onclick="showNewScanForm()">Create First Scan</button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/matrix.js') }}"></script>
+    <script>
+        function showNewScanForm() {
+            document.getElementById('newScanForm').style.display = 'block';
+            document.getElementById('scanName').focus();
+        }
+
+        function hideNewScanForm() {
+            document.getElementById('newScanForm').style.display = 'none';
+            document.getElementById('scanForm').reset();
+        }
+
+        // Handle form submission
+        document.getElementById('scanForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const targets = formData.get('targets').split('\n').filter(t => t.trim());
+            
+            const scanData = {
+                name: formData.get('name'),
+                targets: targets,
+                subdomains: formData.get('subdomains') === 'on',
+                fuzzing: formData.get('fuzzing') === 'on'
+            };
+
+            // Show loading state
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = '🔄 Starting Scan...';
+            submitBtn.disabled = true;
+
+            fetch('/start_scan', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(scanData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('✅ Pentest scan started successfully!');
+                    location.reload();
+                } else {
+                    alert('❌ Failed to start scan: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('❌ Error starting scan');
+            })
+            .finally(() => {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            });
+        });
+
+        // Auto-refresh running scans
+        function refreshRunningScanStatus() {
+            const runningScans = document.querySelectorAll('.scan-card');
+            
+            runningScans.forEach(scanCard => {
+                const scanId = scanCard.dataset.scanId;
+                const statusBadge = scanCard.querySelector('.status-badge');
+                
+                if (statusBadge && statusBadge.textContent.toLowerCase().includes('running')) {
+                    fetch(`/api/scan/${scanId}/status`)
+                        .then(response => response.json())
+                        .then(data => {
+                            // Update progress
+                            const progressPercent = scanCard.querySelector('.progress-percent');
+                            const progressFill = scanCard.querySelector('.progress-fill');
+                            const currentPhase = scanCard.querySelector('.current-phase');
+                            
+                            if (progressPercent) {
+                                progressPercent.textContent = data.progress + '%';
+                            }
+                            if (progressFill) {
+                                progressFill.style.width = data.progress + '%';
+                            }
+                            if (currentPhase) {
+                                currentPhase.textContent = data.current_phase;
+                            }
+                            
+                            // Update status if changed
+                            if (data.status !== 'running') {
+                                statusBadge.textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+                                statusBadge.className = `status-badge status-${data.status}`;
+                                
+                                // Remove progress bar if completed
+                                const progressDiv = scanCard.querySelector('.scan-progress');
+                                if (progressDiv && data.status === 'completed') {
+                                    progressDiv.style.display = 'none';
+                                }
+                            }
+                        })
+                        .catch(error => console.error('Error refreshing scan status:', error));
+                }
+            });
+        }
+
+        // Refresh every 10 seconds
+        setInterval(refreshRunningScanStatus, 10000);
+        
+        // Initial refresh
+        setTimeout(refreshRunningScanStatus, 2000);
+    </script>
+</body>
+</html>

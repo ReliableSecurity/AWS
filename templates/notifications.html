@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akuma Advanced Pentest Scanner - Notifications</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <canvas id="matrix"></canvas>
+    
+    <nav class="navbar">
+        <div class="nav-brand">
+            <h1>⚡ AKUMA PENTEST SCANNER</h1>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="/" class="nav-link">Dashboard</a></li>
+            <li><a href="/scans" class="nav-link">Scans</a></li>
+            <li><a href="/notifications" class="nav-link active">Notifications</a></li>
+            <li><a href="/logout" class="nav-link">Logout</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <header class="page-header">
+            <h1>🔔 NOTIFICATIONS</h1>
+        </header>
+
+        <div class="notifications-section">
+            <div class="notification-card">
+                <div class="notification-icon">🎉</div>
+                <div class="notification-content">
+                    <h3>Welcome to Akuma Advanced Pentest Scanner!</h3>
+                    <p>Your professional penetration testing platform is ready to use.</p>
+                    <span class="notification-time">Just now</span>
+                </div>
+            </div>
+
+            <div class="notification-card">
+                <div class="notification-icon">🚀</div>
+                <div class="notification-content">
+                    <h3>System Ready</h3>
+                    <p>All pentest modules loaded successfully. Ready for comprehensive security assessments.</p>
+                    <span class="notification-time">2 minutes ago</span>
+                </div>
+            </div>
+
+            <div class="notification-card">
+                <div class="notification-icon">🔍</div>
+                <div class="notification-content">
+                    <h3>New Features Available</h3>
+                    <p>Advanced subdomain enumeration and directory fuzzing with Feroxbuster now available!</p>
+                    <span class="notification-time">1 hour ago</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/matrix.js') }}"></script>
+</body>
+</html>

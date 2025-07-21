@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akuma Scanner - Scan Details</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .scan-details-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .scan-header {
+            background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+            border: 1px solid #00ff00;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .scan-header h1 {
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+            margin: 0 0 10px 0;
+        }
+        
+        .scan-status {
+            display: flex;
+            gap: 20px;
+            margin: 15px 0;
+        }
+        
+        .status-item {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            border-radius: 5px;
+            padding: 10px;
+            color: #00ff00;
+            min-width: 100px;
+        }
+        
+        .progress-bar {
+            background: #1a1a1a;
+            border: 1px solid #00ff00;
+            border-radius: 5px;
+            height: 20px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, #00ff00, #00cc00);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        .content-tabs {
+            display: flex;
+            border-bottom: 2px solid #00ff00;
+            margin-bottom: 20px;
+        }
+        
+        .tab-button {
+            background: #1a1a1a;
+            border: 1px solid #00ff00;
+            border-bottom: none;
+            color: #00ff00;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .tab-button.active {
+            background: rgba(0, 255, 0, 0.2);
+        }
+        
+        .tab-content {
+            background: #1a1a1a;
+            border: 1px solid #00ff00;
+            border-radius: 5px;
+            padding: 20px;
+            min-height: 400px;
+        }
+        
+        .log-container {
+            background: #000;
+            border: 1px solid #00ff00;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            max-height: 400px;
+            overflow-y: auto;
+            color: #00ff00;
+        }
+        
+        .log-entry {
+            margin: 5px 0;
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(0, 255, 0, 0.1);
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .result-card {
+            background: #1a1a1a;
+            border: 1px solid #00ff00;
+            border-radius: 5px;
+            padding: 15px;
+        }
+        
+        .result-card h3 {
+            color: #00ff00;
+            text-shadow: 0 0 5px #00ff00;
+            margin: 0 0 15px 0;
+        }
+        
+        .result-item {
+            background: rgba(0, 255, 0, 0.05);
+            border-left: 3px solid #00ff00;
+            padding: 8px;
+            margin: 8px 0;
+            color: #cccccc;
+        }
+        
+        .vulnerability {
+            border-left-color: #ff6600;
+        }
+        
+        .port {
+            border-left-color: #00ff00;
+        }
+        
+        .subdomain {
+            border-left-color: #0066ff;
+        }
+        
+        .directory {
+            border-left-color: #ff00ff;
+        }
+    </style>
+</head>
+<body>
+    <div id="matrix-bg"></div>
+    
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('dashboard') }}" class="nav-brand">🔥 AKUMA</a>
+            <ul class="nav-menu">
+                <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li><a href="{{ url_for('scans') }}">Scans</a></li>
+                <li><a href="{{ url_for('notifications') }}">Notifications</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="scan-details-container">
+        <div class="scan-header">
+            <h1 id="scan-name">{{ scan.name }}</h1>
+            <div class="scan-status">
+                <div class="status-item">
+                    <strong>Status:</strong> <span id="scan-status">{{ scan.status }}</span>
+                </div>
+                <div class="status-item">
+                    <strong>Progress:</strong> <span id="scan-progress">{{ scan.progress }}%</span>
+                </div>
+                <div class="status-item">
+                    <strong>Phase:</strong> <span id="scan-phase">{{ scan.current_phase or 'Pending' }}</span>
+                </div>
+                <div class="status-item">
+                    <strong>Targets:</strong> {{ scan.get_targets()|join(', ') }}
+                </div>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill" style="width: {{ scan.progress }}%"></div>
+            </div>
+        </div>
+
+        <div class="content-tabs">
+            <button class="tab-button active" onclick="switchTab('logs')">Live Logs</button>
+            <button class="tab-button" onclick="switchTab('results')">Results</button>
+            <button class="tab-button" onclick="switchTab('info')">Scan Info</button>
+        </div>
+
+        <div id="logs-tab" class="tab-content">
+            <h2>📡 Live Scan Logs</h2>
+            <div class="log-container" id="logs-container">
+                <div class="log-entry">🔄 Loading logs...</div>
+            </div>
+        </div>
+
+        <div id="results-tab" class="tab-content" style="display: none;">
+            <h2>🎯 Scan Results</h2>
+            <div class="results-grid" id="results-container">
+                <div class="result-card">
+                    <h3>🔄 Loading results...</h3>
+                </div>
+            </div>
+        </div>
+
+        <div id="info-tab" class="tab-content" style="display: none;">
+            <h2>ℹ️ Scan Information</h2>
+            <div class="result-card">
+                <h3>Scan Details</h3>
+                <div class="result-item">
+                    <strong>ID:</strong> {{ scan.id }}
+                </div>
+                <div class="result-item">
+                    <strong>Name:</strong> {{ scan.name }}
+                </div>
+                <div class="result-item">
+                    <strong>Targets:</strong> {{ scan.get_targets()|join(', ') }}
+                </div>
+                <div class="result-item">
+                    <strong>Created:</strong> {{ scan.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                </div>
+                {% if scan.started_at %}
+                <div class="result-item">
+                    <strong>Started:</strong> {{ scan.started_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                </div>
+                {% endif %}
+                {% if scan.completed_at %}
+                <div class="result-item">
+                    <strong>Completed:</strong> {{ scan.completed_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                </div>
+                {% endif %}
+                <div class="result-item">
+                    <strong>Subdomain Enum:</strong> {{ 'Yes' if scan.subdomain_enum else 'No' }}
+                </div>
+                <div class="result-item">
+                    <strong>Directory Fuzzing:</strong> {{ 'Yes' if scan.directory_fuzz else 'No' }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/matrix.js') }}"></script>
+    <script>
+        let scanId = {{ scan.id }};
+        let updateInterval = null;
+        let currentTab = 'logs';
+        
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab and activate button
+            document.getElementById(tabName + '-tab').style.display = 'block';
+            event.target.classList.add('active');
+            
+            currentTab = tabName;
+            
+            // Load data for the active tab
+            if (tabName === 'logs') {
+                updateLogs();
+            } else if (tabName === 'results') {
+                updateResults();
+            }
+        }
+        
+        function updateStatus() {
+            fetch(`/api/scan/${scanId}/status`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('scan-status').textContent = data.status || 'unknown';
+                    document.getElementById('scan-progress').textContent = (data.progress || 0) + '%';
+                    document.getElementById('scan-phase').textContent = data.current_phase || 'pending';
+                    document.getElementById('progress-fill').style.width = (data.progress || 0) + '%';
+                })
+                .catch(error => {
+                    console.log('Status update failed:', error);
+                });
+        }
+        
+        function updateLogs() {
+            if (currentTab !== 'logs') return;
+            
+            fetch(`/api/scan/${scanId}/logs`)
+                .then(response => response.json())
+                .then(data => {
+                    const logsContainer = document.getElementById('logs-container');
+                    if (data.logs && data.logs.length > 0) {
+                        logsContainer.innerHTML = data.logs.map(log => 
+                            `<div class="log-entry">${log}</div>`
+                        ).join('');
+                        logsContainer.scrollTop = logsContainer.scrollHeight;
+                    } else {
+                        logsContainer.innerHTML = '<div class="log-entry">📋 No logs available yet...</div>';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('logs-container').innerHTML = 
+                        '<div class="log-entry">❌ Failed to load logs</div>';
+                    console.log('Logs update failed:', error);
+                });
+        }
+        
+        function updateResults() {
+            if (currentTab !== 'results') return;
+            
+            fetch(`/api/scan/${scanId}/results`)
+                .then(response => response.json())
+                .then(data => {
+                    const resultsContainer = document.getElementById('results-container');
+                    
+                    if (data.results && data.results.length > 0) {
+                        const groupedResults = {};
+                        
+                        // Group results by type
+                        data.results.forEach(result => {
+                            if (!groupedResults[result.type]) {
+                                groupedResults[result.type] = [];
+                            }
+                            groupedResults[result.type].push(result);
+                        });
+                        
+                        let html = '';
+                        
+                        // Generate cards for each result type
+                        Object.keys(groupedResults).forEach(type => {
+                            const results = groupedResults[type];
+                            const typeIcon = {
+                                'ports': '🔌',
+                                'subdomains': '🌐',
+                                'directories': '📁',
+                                'vulnerabilities': '⚠️'
+                            }[type] || '📊';
+                            
+                            html += `
+                                <div class="result-card">
+                                    <h3>${typeIcon} ${type.toUpperCase()} (${results.length})</h3>
+                            `;
+                            
+                            results.forEach(result => {
+                                if (result.data) {
+                                    if (type === 'ports' && result.data.open_ports) {
+                                        result.data.open_ports.forEach(port => {
+                                            html += `<div class="result-item port">🟢 ${port}</div>`;
+                                        });
+                                    } else if (type === 'subdomains' && result.data.subdomains) {
+                                        result.data.subdomains.forEach(sub => {
+                                            html += `<div class="result-item subdomain">🌐 ${sub}</div>`;
+                                        });
+                                    } else if (type === 'directories' && result.data.directories) {
+                                        result.data.directories.forEach(dir => {
+                                            html += `<div class="result-item directory">📁 ${dir}</div>`;
+                                        });
+                                    } else if (type === 'vulnerabilities' && result.data.vulnerabilities) {
+                                        result.data.vulnerabilities.forEach(vuln => {
+                                            html += `<div class="result-item vulnerability">⚠️ ${vuln}</div>`;
+                                        });
+                                    }
+                                }
+                            });
+                            
+                            html += '</div>';
+                        });
+                        
+                        resultsContainer.innerHTML = html;
+                    } else {
+                        resultsContainer.innerHTML = `
+                            <div class="result-card">
+                                <h3>📋 No results yet</h3>
+                                <div class="result-item">Scan is still running or no results found.</div>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('results-container').innerHTML = `
+                        <div class="result-card">
+                            <h3>❌ Failed to load results</h3>
+                            <div class="result-item">Error: ${error.message}</div>
+                        </div>
+                    `;
+                    console.log('Results update failed:', error);
+                });
+        }
+        
+        function startUpdates() {
+            // Update immediately
+            updateStatus();
+            updateLogs();
+            
+            // Set up periodic updates (every 5 seconds instead of 2)
+            updateInterval = setInterval(() => {
+                updateStatus();
+                if (currentTab === 'logs') {
+                    updateLogs();
+                } else if (currentTab === 'results') {
+                    updateResults();
+                }
+            }, 5000);
+        }
+        
+        function stopUpdates() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+                updateInterval = null;
+            }
+        }
+        
+        // Start updates when page loads
+        document.addEventListener('DOMContentLoaded', startUpdates);
+        
+        // Stop updates when page is hidden
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stopUpdates();
+            } else {
+                startUpdates();
+            }
+        });
+        
+        // Clean up on page unload
+        window.addEventListener('beforeunload', stopUpdates);
+    </script>
+</body>
+</html>

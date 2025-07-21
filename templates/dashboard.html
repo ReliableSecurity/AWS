@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akuma Advanced Pentest Scanner - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <canvas id="matrix"></canvas>
+    
+    <nav class="navbar">
+        <div class="nav-brand">
+            <h1>⚡ AKUMA PENTEST SCANNER</h1>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="/" class="nav-link active">Dashboard</a></li>
+            <li><a href="/scans" class="nav-link">Scans</a></li>
+            <li><a href="/notifications" class="nav-link">Notifications</a></li>
+            <li><a href="/logout" class="nav-link">Logout</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <header class="dashboard-header">
+            <h1>🎯 PENTEST DASHBOARD</h1>
+            <p class="subtitle">Advanced Security Assessment Platform</p>
+        </header>
+
+        <!-- Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                    <h3 id="total-scans">{{ stats.total_scans }}</h3>
+                    <p>Total Scans</p>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-content">
+                    <h3 id="completed-scans">{{ stats.completed_scans }}</h3>
+                    <p>Completed</p>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">🚀</div>
+                <div class="stat-content">
+                    <h3 id="running-scans">{{ stats.running_scans }}</h3>
+                    <p>Running</p>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">💯</div>
+                <div class="stat-content">
+                    <h3 id="success-rate">{{ stats.success_rate }}%</h3>
+                    <p>Success Rate</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pentest Statistics -->
+        <div class="pentest-stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-content">
+                    <h3 id="targets-scanned">-</h3>
+                    <p>Targets Scanned</p>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">🕸️</div>
+                <div class="stat-content">
+                    <h3 id="subdomains-found">-</h3>
+                    <p>Subdomains Found</p>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">🔍</div>
+                <div class="stat-content">
+                    <h3 id="ports-found">-</h3>
+                    <p>Open Ports</p>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">📁</div>
+                <div class="stat-content">
+                    <h3 id="directories-found">-</h3>
+                    <p>Directories Found</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>📈 Scan Activity</h3>
+                <canvas id="scanChart"></canvas>
+            </div>
+            
+            <div class="chart-card">
+                <h3>🔍 Scan Status Distribution</h3>
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Recent Scans -->
+        <div class="recent-scans">
+            <h2>🕐 Recent Scans</h2>
+            <div class="scans-list">
+                {% for scan in recent_scans %}
+                <div class="scan-item">
+                    <div class="scan-info">
+                        <h4>{{ scan.name }}</h4>
+                        <p>🎯 {{ scan.get_targets() | length }} targets</p>
+                        <span class="scan-date">{{ scan.started_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                    </div>
+                    <div class="scan-status">
+                        <span class="status-badge status-{{ scan.status }}">{{ scan.status | title }}</span>
+                        {% if scan.status == 'running' %}
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ scan.progress }}%"></div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="scan-actions">
+                        <a href="/scan/{{ scan.id }}" class="btn-view">View</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            {% if not recent_scans %}
+            <div class="empty-state">
+                <p>🚀 No scans yet. Create your first pentest scan!</p>
+                <a href="/scans" class="btn btn-primary">Start Scanning</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/matrix.js') }}"></script>
+    <script>
+        // Auto-refresh dashboard data
+        function refreshDashboard() {
+            fetch('/api/dashboard/stats')
+                .then(response => response.json())
+                .then(data => {
+                    // Update scan stats
+                    document.getElementById('total-scans').textContent = data.scan_stats.total;
+                    document.getElementById('completed-scans').textContent = data.scan_stats.completed;
+                    document.getElementById('running-scans').textContent = data.scan_stats.running;
+                    document.getElementById('success-rate').textContent = data.scan_stats.success_rate + '%';
+                    
+                    // Update pentest stats
+                    document.getElementById('targets-scanned').textContent = data.pentest_stats.targets_scanned;
+                    document.getElementById('subdomains-found').textContent = data.pentest_stats.subdomains_found;
+                    document.getElementById('ports-found').textContent = data.pentest_stats.open_ports_found;
+                    document.getElementById('directories-found').textContent = data.pentest_stats.directories_found;
+                    
+                    // Update charts
+                    updateCharts(data);
+                })
+                .catch(error => console.error('Error refreshing dashboard:', error));
+        }
+
+        // Initialize charts
+        let scanChart, statusChart;
+
+        function initializeCharts() {
+            // Scan Activity Chart (dummy data for now)
+            const scanCtx = document.getElementById('scanChart').getContext('2d');
+            scanChart = new Chart(scanCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Scans',
+                        data: [2, 5, 3, 8, 4, 6, 7],
+                        borderColor: '#00ff00',
+                        backgroundColor: 'rgba(0, 255, 0, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#00ff00' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: { color: '#00ff00' },
+                            grid: { color: 'rgba(0, 255, 0, 0.1)' }
+                        },
+                        x: {
+                            ticks: { color: '#00ff00' },
+                            grid: { color: 'rgba(0, 255, 0, 0.1)' }
+                        }
+                    }
+                }
+            });
+
+            // Status Distribution Chart
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            statusChart = new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completed', 'Running', 'Failed'],
+                    datasets: [{
+                        data: [70, 20, 10],
+                        backgroundColor: ['#00ff00', '#ffff00', '#ff0000']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#00ff00' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateCharts(data) {
+            // Update status chart with real data
+            if (statusChart && data.scan_stats) {
+                statusChart.data.datasets[0].data = [
+                    data.scan_stats.completed,
+                    data.scan_stats.running,
+                    data.scan_stats.failed
+                ];
+                statusChart.update();
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            refreshDashboard();
+            
+            // Refresh every 30 seconds
+            setInterval(refreshDashboard, 30000);
+        });
+    </script>
+</body>
+</html>

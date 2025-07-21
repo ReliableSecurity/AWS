@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akuma Web Scanner v2.0</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0d0d0d;
+            color: #00ff00;
+            min-height: 100vh;
+            background-image: radial-gradient(circle at 25% 25%, #2d5016 0%, #0d0d0d 50%);
+        }
+        
+        .kali-header {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d5016 50%, #1a1a1a 100%);
+            padding: 20px 0;
+            text-align: center;
+            border-bottom: 3px solid #00ff00;
+            box-shadow: 0 5px 20px rgba(0, 255, 0, 0.3);
+        }
+        
+        .kali-title {
+            font-size: 3.5rem;
+            color: #ff0040;
+            text-shadow: 0 0 20px #ff0040, 0 0 40px #ff0040;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .kali-subtitle {
+            color: #00ff00;
+            font-size: 1.3rem;
+            text-shadow: 0 0 10px #00ff00;
+        }
+        
+        .terminal-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+        
+        .terminal-window {
+            background: #1a1a1a;
+            border: 2px solid #00ff00;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.4);
+        }
+        
+        .terminal-header {
+            background: #2d5016;
+            color: #00ff00;
+            padding: 15px 20px;
+            font-weight: bold;
+            border-bottom: 2px solid #00ff00;
+            font-size: 1.2rem;
+        }
+        
+        .terminal-content {
+            padding: 20px;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .terminal-label {
+            display: block;
+            color: #00ff00;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        
+        .terminal-input {
+            width: 100%;
+            padding: 12px;
+            background: #0d0d0d;
+            border: 2px solid #333;
+            border-radius: 5px;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .terminal-input:focus {
+            outline: none;
+            border-color: #00ff00;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+            background: #1a1a1a;
+        }
+        
+        .kali-btn {
+            background: linear-gradient(45deg, #ff0040, #ff4080);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+        
+        .kali-btn:hover {
+            background: linear-gradient(45deg, #cc0033, #cc3366);
+            box-shadow: 0 0 20px rgba(255, 0, 64, 0.6);
+            transform: translateY(-2px);
+        }
+        
+        .kali-btn:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .terminal-output {
+            background: #0d0d0d;
+            border: 2px solid #333;
+            border-radius: 5px;
+            height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 5px;
+            border-left: 3px solid transparent;
+        }
+        
+        .log-info {
+            color: #00aaff;
+            border-left-color: #00aaff;
+        }
+        
+        .log-success {
+            color: #00ff00;
+            border-left-color: #00ff00;
+        }
+        
+        .log-warning {
+            color: #ffaa00;
+            border-left-color: #ffaa00;
+        }
+        
+        .log-error {
+            color: #ff0000;
+            border-left-color: #ff0000;
+        }
+        
+        .log-vuln {
+            color: #ff00ff;
+            border-left-color: #ff00ff;
+        }
+        
+        .log-progress {
+            color: #00ff80;
+            border-left-color: #00ff80;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .scan-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: #333;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #40ff40, #80ff80);
+            width: 0%;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: scan-line 2s infinite;
+        }
+        
+        @keyframes scan-line {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(200%); }
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-running {
+            background: #ffaa00;
+            animation: pulse 1s infinite;
+        }
+        
+        .status-completed {
+            background: #00ff00;
+        }
+        
+        .status-error {
+            background: #ff0000;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .matrix-rain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.1;
+        }
+        
+        .matrix-char {
+            position: absolute;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            animation: fall-down linear infinite;
+        }
+        
+        @keyframes fall-down {
+            0% { transform: translateY(-100px); opacity: 1; }
+            100% { transform: translateY(100vh); opacity: 0; }
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            background: #1a1a1a;
+            border: 2px solid #00ff00;
+            border-radius: 10px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Matrix Rain Background -->
+    <div class="matrix-rain" id="matrixRain"></div>
+    
+    <!-- Header -->
+    <div class="kali-header">
+        <div class="kali-title">👹 AKUMA WEB SCANNER v2.0</div>
+        <div class="kali-subtitle">Professional Web Application Security Scanner</div>
+    </div>
+    
+    <!-- Main Terminal Interface -->
+    <div class="terminal-container">
+        <!-- Scan Control Panel -->
+        <div class="terminal-window">
+            <div class="terminal-header">🎯 SCAN CONTROL PANEL</div>
+            <div class="terminal-content">
+                <div class="input-group">
+                    <label class="terminal-label">Target Domain:</label>
+                    <input type="text" class="terminal-input" id="targetDomain" placeholder="example.com">
+                </div>
+                
+                <div class="scan-actions">
+                    <button class="kali-btn" onclick="startFullScan()">🚀 Full Scan</button>
+                    <button class="kali-btn" onclick="startFuzzing()">🧩 Fuzzing</button>
+                    <button class="kali-btn" onclick="startBruteforce()">💪 Bruteforce</button>
+                    <button class="kali-btn" onclick="showWordlistModal()">📝 Wordlists</button>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div id="progressContainer" class="hidden">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressBar"></div>
+                    </div>
+                    <div id="progressText">Initializing scan...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dashboard Grid -->
+        <div class="dashboard-grid">
+            <!-- Live Terminal Output -->
+            <div class="terminal-window">
+                <div class="terminal-header">📺 LIVE TERMINAL OUTPUT</div>
+                <div class="terminal-content">
+                    <div class="terminal-output" id="liveOutput">
+                        <div class="log-entry log-info">[INFO] Akuma Scanner ready...</div>
+                        <div class="log-entry log-success">[SUCCESS] All systems operational</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Scan History -->
+            <div class="terminal-window">
+                <div class="terminal-header">📜 SCAN HISTORY</div>
+                <div class="terminal-content">
+                    <div class="terminal-output" id="scanHistory">
+                        <div class="log-entry log-info">Loading scan history...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results Dashboard -->
+        <div id="resultsContainer" class="terminal-window hidden">
+            <div class="terminal-header">📊 SCAN RESULTS</div>
+            <div class="terminal-content" id="resultsContent">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Wordlist Modal -->
+    <div id="wordlistModal" class="modal">
+        <div class="modal-content">
+            <div class="terminal-header">📝 WORDLIST CONFIGURATION</div>
+            <div class="terminal-content">
+                <div class="input-group">
+                    <label class="terminal-label">Wordlist Path:</label>
+                    <input type="text" class="terminal-input" id="wordlistPath" placeholder="/usr/share/wordlists/dirb/common.txt">
+                </div>
+                <div class="scan-actions">
+                    <button class="kali-btn" onclick="saveWordlistConfig()">💾 Save</button>
+                    <button class="kali-btn" onclick="closeWordlistModal()">❌ Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize Socket.IO
+        const socket = io();
+        let currentScanId = null;
+        
+        // Matrix Rain Effect
+        function createMatrixRain() {
+            const matrixContainer = document.getElementById('matrixRain');
+            const chars = '01アカウマ悪魔スキャナーABCDEF';
+            
+            for (let i = 0; i < 50; i++) {
+                const char = document.createElement('div');
+                char.className = 'matrix-char';
+                char.textContent = chars[Math.floor(Math.random() * chars.length)];
+                char.style.left = Math.random() * 100 + '%';
+                char.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                char.style.animationDelay = Math.random() * 2 + 's';
+                matrixContainer.appendChild(char);
+            }
+        }
+        
+        // Logging Functions
+        function addLogEntry(level, message, timestamp = null) {
+            const output = document.getElementById('liveOutput');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${level.toLowerCase()}`;
+            
+            const time = timestamp || new Date().toLocaleTimeString();
+            logEntry.innerHTML = `<strong>[${time}] [${level}]</strong> ${message}`;
+            
+            output.appendChild(logEntry);
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        // Progress Management
+        function updateProgress(percent, text) {
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = percent + '%';
+            progressText.textContent = text;
+        }
+        
+        function hideProgress() {
+            document.getElementById('progressContainer').classList.add('hidden');
+        }
+        
+        // Scan Functions
+        async function startFullScan() {
+            const target = document.getElementById('targetDomain').value.trim();
+            if (!target) {
+                alert('Please enter a target domain!');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/scan/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    currentScanId = data.scan_id;
+                    addLogEntry('SUCCESS', `Full scan started for ${target}`);
+                    updateProgress(0, 'Initializing scan...');
+                } else {
+                    addLogEntry('ERROR', data.message || 'Failed to start scan');
+                }
+            } catch (error) {
+                addLogEntry('ERROR', `Network error: ${error.message}`);
+            }
+        }
+        
+        async function startFuzzing() {
+            const target = document.getElementById('targetDomain').value.trim();
+            if (!target) {
+                alert('Please enter a target domain!');
+                return;
+            }
+            
+            const targetUrl = target.startsWith('http') ? target : `https://${target}`;
+            
+            try {
+                const response = await fetch('/api/scan/fuzzing', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        target_url: targetUrl,
+                        wordlist_path: localStorage.getItem('wordlistPath')
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    addLogEntry('SUCCESS', `Fuzzing started for ${targetUrl}`);
+                } else {
+                    addLogEntry('ERROR', data.message || 'Failed to start fuzzing');
+                }
+            } catch (error) {
+                addLogEntry('ERROR', `Network error: ${error.message}`);
+            }
+        }
+        
+        async function startBruteforce() {
+            const target = document.getElementById('targetDomain').value.trim();
+            if (!target) {
+                alert('Please enter a target domain!');
+                return;
+            }
+            
+            const targetUrl = target.startsWith('http') ? target : `https://${target}`;
+            
+            try {
+                const response = await fetch('/api/scan/bruteforce', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        target_url: targetUrl,
+                        wordlist_path: localStorage.getItem('wordlistPath')
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    addLogEntry('SUCCESS', `Directory bruteforce started for ${targetUrl}`);
+                } else {
+                    addLogEntry('ERROR', data.message || 'Failed to start bruteforce');
+                }
+            } catch (error) {
+                addLogEntry('ERROR', `Network error: ${error.message}`);
+            }
+        }
+        
+        // Wordlist Modal Functions
+        function showWordlistModal() {
+            document.getElementById('wordlistModal').style.display = 'flex';
+            document.getElementById('wordlistPath').value = localStorage.getItem('wordlistPath') || '';
+        }
+        
+        function closeWordlistModal() {
+            document.getElementById('wordlistModal').style.display = 'none';
+        }
+        
+        function saveWordlistConfig() {
+            const path = document.getElementById('wordlistPath').value.trim();
+            if (path) {
+                localStorage.setItem('wordlistPath', path);
+                addLogEntry('SUCCESS', `Wordlist path saved: ${path}`);
+            }
+            closeWordlistModal();
+        }
+        
+        // Load Scan History
+        async function loadScanHistory() {
+            try {
+                const response = await fetch('/api/scans/history');
+                const scans = await response.json();
+                
+                const historyContainer = document.getElementById('scanHistory');
+                historyContainer.innerHTML = '';
+                
+                scans.forEach(scan => {
+                    const entry = document.createElement('div');
+                    entry.className = 'log-entry log-info';
+                    
+                    const statusClass = scan.status === 'completed' ? 'status-completed' : 
+                                       scan.status === 'running' ? 'status-running' : 'status-error';
+                    
+                    entry.innerHTML = `
+                        <span class="status-indicator ${statusClass}"></span>
+                        <strong>${scan.target_domain}</strong> [${scan.status}]
+                        <br><small>${new Date(scan.created_at).toLocaleString()}</small>
+                    `;
+                    
+                    historyContainer.appendChild(entry);
+                });
+                
+            } catch (error) {
+                addLogEntry('ERROR', `Failed to load scan history: ${error.message}`);
+            }
+        }
+        
+        // Display Results
+        function displayResults(results) {
+            const container = document.getElementById('resultsContainer');
+            const content = document.getElementById('resultsContent');
+            
+            container.classList.remove('hidden');
+            
+            const stats = results.statistics || {};
+            
+            content.innerHTML = `
+                <div class="dashboard-grid">
+                    <div class="terminal-window">
+                        <div class="terminal-header">📈 STATISTICS</div>
+                        <div class="terminal-content">
+                            <div class="log-entry log-success">Vulnerabilities: ${stats.vulnerabilities || 0}</div>
+                            <div class="log-entry log-warning">Sensitive Findings: ${stats.sensitive_findings || 0}</div>
+                            <div class="log-entry log-info">Directories Found: ${stats.directories_found || 0}</div>
+                            <div class="log-entry log-info">Open Ports: ${stats.open_ports || 0}</div>
+                            <div class="log-entry log-info">Scan Duration: ${stats.scan_duration || 'Unknown'}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="terminal-window">
+                        <div class="terminal-header">🚨 VULNERABILITIES</div>
+                        <div class="terminal-content">
+                            <div class="terminal-output">
+                                ${results.vulnerabilities?.map(vuln => 
+                                    `<div class="log-entry log-vuln">[${vuln.severity}] ${vuln.vuln_type} - ${vuln.url}</div>`
+                                ).join('') || '<div class="log-entry log-success">No vulnerabilities found</div>'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Socket Event Listeners
+        socket.on('connect', () => {
+            addLogEntry('SUCCESS', 'Connected to Akuma Scanner');
+        });
+        
+        socket.on('scan_log', (data) => {
+            if (data.scan_id === currentScanId || !currentScanId) {
+                addLogEntry(data.level, data.message, data.timestamp);
+            }
+        });
+        
+        socket.on('scan_progress', (data) => {
+            if (data.scan_id === currentScanId) {
+                updateProgress(data.progress, `Phase ${data.current}/${data.total}: ${data.phase}`);
+            }
+        });
+        
+        socket.on('scan_complete', (data) => {
+            if (data.scan_id === currentScanId) {
+                addLogEntry('SUCCESS', '✅ Scan completed successfully!');
+                hideProgress();
+                displayResults(data.results);
+                loadScanHistory(); // Refresh history
+            }
+        });
+        
+        socket.on('scan_error', (data) => {
+            if (data.scan_id === currentScanId) {
+                addLogEntry('ERROR', `💀 Scan error: ${data.error}`);
+                hideProgress();
+            }
+        });
+        
+        socket.on('fuzzing_complete', (data) => {
+            addLogEntry('SUCCESS', `✅ Fuzzing completed: ${data.results.length} results`);
+        });
+        
+        socket.on('bruteforce_complete', (data) => {
+            addLogEntry('SUCCESS', `✅ Directory bruteforce completed: ${data.results.length} paths found`);
+        });
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            createMatrixRain();
+            loadScanHistory();
+            
+            // Set default wordlist path
+            if (!localStorage.getItem('wordlistPath')) {
+                localStorage.setItem('wordlistPath', '/usr/share/wordlists/dirb/common.txt');
+            }
+        });
+        
+        // Handle Enter key in target input
+        document.getElementById('targetDomain').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                startFullScan();
+            }
+        });
+        
+        // Close modal when clicking outside
+        document.getElementById('wordlistModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                closeWordlistModal();
+            }
+        });
+    </script>
+</body>
+</html>

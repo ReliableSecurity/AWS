@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Enhanced Scanner Form -->
+    <div class="scan-form">
+        <h2>🔥 Start New Scan 🔥</h2>
+        
+        <div class="form-group">
+            <label for="target-input">Target Domain:</label>
+            <input type="text" id="target-input" class="form-control" placeholder="example.com" required>
+        </div>
+
+        <!-- Scan Options -->
+        <div class="scan-options">
+            <h3>🛠️ Scan Options</h3>
+            
+            <!-- Subdomains Toggle -->
+            <div class="option-group">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="subdomains-toggle">
+                    <span class="slider"></span>
+                </label>
+                <span class="option-label">🌐 Include Subdomains Discovery</span>
+                <small>Find and scan all subdomains of the target</small>
+            </div>
+
+            <!-- Fuzzing Options -->
+            <div class="option-group">
+                <label for="fuzzing-select">🎯 Directory Fuzzing:</label>
+                <select id="fuzzing-select" class="form-control">
+                    <option value="0">Disabled</option>
+                    <option value="1">Depth 1 (Surface scan)</option>
+                    <option value="2" selected>Depth 2 (Recommended)</option>
+                    <option value="5">Depth 5 (Deep scan)</option>
+                </select>
+                <small>Higher depth = more thorough but slower scanning</small>
+            </div>
+
+            <!-- Bruteforce Note -->
+            <div class="option-group">
+                <div class="option-note">
+                    ⚔️ <strong>Bruteforce:</strong> Will be automatically enabled for discovered open ports
+                    <br><small>Available in scan results for SSH, FTP, HTTP auth, etc.</small>
+                </div>
+            </div>
+        </div>
+
+        <button id="start-scan-btn" class="btn">
+            🚀 Launch Advanced Scan
+        </button>
+    </div>
+
+    <!-- Statistics Dashboard -->
+    <div class="stats-grid">
+        <!-- Quick Stats -->
+        <div class="stats-card">
+            <h3>📊 Scanner Statistics</h3>
+            
+            <div class="stat-item">
+                <span>Total Scans:</span>
+                <span class="stat-value">{{ stats.total_scans }}</span>
+            </div>
+            
+            <div class="stat-item">
+                <span>Completed:</span>
+                <span class="stat-value">{{ stats.completed_scans }}</span>
+            </div>
+            
+            <div class="stat-item">
+                <span>Vulnerabilities Found:</span>
+                <span class="stat-value critical">{{ stats.total_vulnerabilities }}</span>
+            </div>
+            
+            <div class="stat-item">
+                <span>Avg Vulns per Scan:</span>
+                <span class="stat-value">{{ stats.average_vulns_per_scan }}</span>
+            </div>
+        </div>
+
+        <!-- Recent Scans -->
+        {% if stats.recent_scans %}
+        <div class="stats-card">
+            <h3>🔍 Recent Scans</h3>
+            {% for scan in stats.recent_scans %}
+            <div class="recent-scan-item">
+                <div class="scan-info">
+                    <strong>{{ scan.target }}</strong>
+                    <small>{{ scan.started_at.strftime('%m-%d %H:%M') }}</small>
+                </div>
+                <div class="scan-status">
+                    <span class="status-badge status-{{ scan.status }}">{{ scan.status.upper() }}</span>
+                    {% if 0 > 0 %}
+                    <span class="vuln-count">{{ 0 }} vulns</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Progress Container -->
+<div id="progress-container" class="progress-container" style="display: none;">
+    <h3>🔥 Scan Progress</h3>
+    <div class="progress-bar">
+        <div id="progress-fill" class="progress-fill"></div>
+    </div>
+    <div class="progress-info">
+        <span id="progress-text">0% (0/8)</span>
+        <span>Phase: <span id="current-phase">Initializing...</span></span>
+    </div>
+    <div class="progress-details">
+        <div id="current-target">Target: <span>-</span></div>
+        <div id="scan-options-display">Options: <span>-</span></div>
+    </div>
+</div>
+
+<!-- Logs Container -->
+<div id="logs-container" class="logs-container"></div>
+
+<!-- Vulnerability Trends Chart Placeholder -->
+<div class="stats-card chart-container">
+    <h3>📈 Vulnerability Trends</h3>
+    <div class="chart-placeholder">
+        <div class="chart-info">
+            <div class="chart-metric">
+                <span class="metric-value">{{ stats.total_vulnerabilities }}</span>
+                <span class="metric-label">Total Vulnerabilities</span>
+            </div>
+            <div class="chart-metric">
+                <span class="metric-value">{{ stats.completed_scans }}</span>
+                <span class="metric-label">Scans Completed</span>
+            </div>
+            <div class="chart-metric">
+                <span class="metric-value">{{ stats.average_vulns_per_scan }}</span>
+                <span class="metric-label">Average per Scan</span>
+            </div>
+        </div>
+        <div class="chart-note">
+            📊 Interactive vulnerability charts will be displayed here
+            <br>🔥 Track security improvements over time
+        </div>
+    </div>
+</div>
+
+<style>
+.scan-options {
+    background: rgba(0, 255, 0, 0.05);
+    border: 1px solid #00ff00;
+    border-radius: 5px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.scan-options h3 {
+    color: #00ff00;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+}
+
+.option-group {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(0, 255, 0, 0.2);
+}
+
+.option-group:last-child {
+    border-bottom: none;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+    margin-right: 10px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #333;
+    transition: .4s;
+    border-radius: 34px;
+    border: 1px solid #00ff00;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: #00ff00;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: rgba(0, 255, 0, 0.3);
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.option-label {
+    color: #00ff00;
+    font-weight: bold;
+    vertical-align: super;
+}
+
+.option-group small {
+    display: block;
+    color: #888;
+    font-size: 0.85em;
+    margin-top: 5px;
+}
+
+.option-note {
+    background: rgba(255, 215, 0, 0.1);
+    border: 1px solid #ffcc00;
+    border-radius: 3px;
+    padding: 10px;
+    color: #ffcc00;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.recent-scan-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(0, 255, 0, 0.2);
+}
+
+.recent-scan-item:last-child {
+    border-bottom: none;
+}
+
+.scan-info strong {
+    color: #00ff00;
+}
+
+.scan-info small {
+    color: #888;
+    display: block;
+}
+
+.status-badge {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.status-completed { background-color: rgba(0, 255, 0, 0.3); color: #00ff00; }
+.status-running { background-color: rgba(255, 215, 0, 0.3); color: #ffcc00; }
+.status-failed { background-color: rgba(255, 0, 0, 0.3); color: #ff0000; }
+.status-pending { background-color: rgba(128, 128, 128, 0.3); color: #888; }
+
+.vuln-count {
+    background-color: rgba(255, 0, 0, 0.3);
+    color: #ff6666;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.8em;
+    margin-left: 5px;
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    color: #00ff00;
+    margin: 10px 0;
+}
+
+.progress-details {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9em;
+    color: #888;
+}
+
+.chart-container {
+    margin-top: 20px;
+    grid-column: 1 / -1;
+}
+
+.chart-placeholder {
+    text-align: center;
+    padding: 20px;
+}
+
+.chart-info {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+}
+
+.chart-metric {
+    text-align: center;
+}
+
+.metric-value {
+    display: block;
+    font-size: 2em;
+    font-weight: bold;
+    color: #00ff00;
+}
+
+.metric-label {
+    display: block;
+    font-size: 0.9em;
+    color: #888;
+}
+
+.chart-note {
+    color: #666;
+    font-style: italic;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const startBtn = document.getElementById('start-scan-btn');
+    const targetInput = document.getElementById('target-input');
+    const subdomainsToggle = document.getElementById('subdomains-toggle');
+    const fuzzingSelect = document.getElementById('fuzzing-select');
+    const progressContainer = document.getElementById('progress-container');
+    
+    startBtn.addEventListener('click', function() {
+        const target = targetInput.value.trim();
+        
+        if (!target) {
+            alert('Please enter a target domain');
+            return;
+        }
+
+        const scanOptions = {
+            target: target,
+            subdomains: subdomainsToggle.checked,
+            fuzzing_depth: parseInt(fuzzingSelect.value),
+            bruteforce: false  // Will be enabled automatically for discovered ports
+        };
+
+        // Show progress container
+        progressContainer.style.display = 'block';
+        
+        // Update progress display
+        document.getElementById('current-target').innerHTML = `Target: <span>${target}</span>`;
+        document.getElementById('scan-options-display').innerHTML = `Options: <span>
+            ${scanOptions.subdomains ? 'Subdomains,' : ''}
+            ${scanOptions.fuzzing_depth > 0 ? `Fuzzing(${scanOptions.fuzzing_depth}),` : ''}
+            Auto-Bruteforce
+        </span>`;
+        
+        // Disable button during scan
+        startBtn.disabled = true;
+        startBtn.textContent = '🔄 Starting Scan...';
+        
+        // Start the scan
+        fetch('/api/start_scan', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(scanOptions)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Redirect to scan results
+                setTimeout(() => {
+                    window.location.href = `/scan/${data.scan_id}`;
+                }, 1000);
+            } else {
+                alert('Error starting scan: ' + (data.error || 'Unknown error'));
+                startBtn.disabled = false;
+                startBtn.textContent = '🚀 Launch Advanced Scan';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error starting scan');
+            startBtn.disabled = false;
+            startBtn.textContent = '🚀 Launch Advanced Scan';
+        });
+    });
+});
+</script>
+{% endblock %}

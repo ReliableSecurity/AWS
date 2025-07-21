@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="scan-detail-container">
+    <h1>🔥 Scan Details: {{ scan.target_domain }}</h1>
+
+    <!-- General Scan Information -->
+    <div class="stats-card">
+        <h3>📊 Scan Information</h3>
+        <div class="stat-item">
+            <span>Status:</span>
+            <span class="stat-value status-{{ scan.status }}">{{ scan.status.upper() }}</span>
+        </div>
+        <div class="stat-item">
+            <span>Started:</span>
+            <span class="stat-value">{{ scan.started_at.strftime('%Y-%m-%d %H:%M:%S') if scan.started_at else 'N/A' }}</span>
+        </div>
+        <div class="stat-item">
+            <span>Completed:</span>
+            <span class="stat-value">{{ scan.completed_at.strftime('%Y-%m-%d %H:%M:%S') if scan.completed_at else 'N/A' }}</span>
+        </div>
+        <div class="stat-item">
+            <span>Progress:</span>
+            <span class="stat-value">{{ scan.progress }}%</span>
+        </div>
+    </div>
+
+    <!-- Detailed Information -->
+    {% for subdomain, results in results_by_subdomain.items() %}
+    <div class="results-section">
+        <h3>🌐 Results for {{ subdomain }}</h3>
+
+        <!-- Open Ports -->
+        {% if results.ports %}
+        <div class="result-card">
+            <h4>🚪 Open Ports ({{ results.ports|length }})</h4>
+            <ul class="result-list">
+            {% for port in results.ports %}
+                <li>{{ port.port }}/{{ port.protocol }} - {{ port.service }}</li>
+            {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Vulnerabilities -->
+        {% if results.vulnerabilities %}
+        <div class="result-card">
+            <h4>🔓 Vulnerabilities ({{ results.vulnerabilities|length }})</h4>
+            <ul class="result-list">
+            {% for vuln in results.vulnerabilities %}
+                <li style="color: #ff6666;">{{ vuln.category }}: {{ vuln.title }} - {{ vuln.severity }}</li>
+                <p>{{ vuln.description }}</p>
+                {% if vuln.evidence %}
+                <div class="evidence">Evidence: {{ vuln.evidence }}</div>
+                {% endif %}
+            {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Technologies -->
+        {% if results.technologies %}
+        <div class="result-card">
+            <h4>⚙️ Technologies ({{ results.technologies|length }})</h4>
+            <ul class="result-list">
+            {% for tech in results.technologies %}
+                <li>{{ tech.name }} {{ tech.version or '' }}</li>
+            {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Sensitive Content -->
+        {% if results.sensitive %}
+        <div class="result-card">
+            <h4>⚠️ Sensitive Content ({{ results.sensitive|length }})</h4>
+            <ul class="result-list">
+            {% for content in results.sensitive %}
+                <li style="color: #ffaa00;">{{ content.category }}: {{ content.title }}</li>
+            {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Directories -->
+        {% if results.directories %}
+        <div class="result-card">
+            <h4>📁 Directories ({{ results.directories|length }})</h4>
+            <ul class="result-list">
+            {% for dir in results.directories %}
+                <li>{{ dir.title }} ({{ dir.status }})</li>
+            {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <!-- Subdomain Results -->
+    <div class="results-section">
+        <h3>🔍 Subdomains Found ({{ subdomains|length }})</h3>
+        <ul class="subdomain-list">
+        {% for subdomain in subdomains %}
+            <li>{{ subdomain.subdomain }} (IP: {{ subdomain.ip_address or 'N/A' }})</li>
+        {% endfor %}
+        </ul>
+    </div>
+
+    <div style="margin-top: 20px; text-align: center;">
+        <a href="/scans" class="btn">← Back to Scans</a>
+        <a href="/" class="btn">🏠 Dashboard</a>
+    </div>
+</div>
+{% endblock %}

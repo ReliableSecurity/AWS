@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AWS - Akuma Web Scanner{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body>
+    <!-- Matrix Rain Background -->
+    <canvas id="matrix-canvas"></canvas>
+    
+    <!-- Header -->
+    <header class="terminal-header">
+        <div class="header-content">
+            <div class="logo">
+                <span class="logo-text">AWS</span>
+                <span class="logo-subtitle">Akuma-Web_Scanner</span>
+            </div>
+            <nav class="nav-menu">
+                <a href="/" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a>
+                <a href="/scans" class="nav-link {% if request.endpoint == 'scans' %}active{% endif %}">Scans</a>
+                <a href="/notifications" class="nav-link {% if request.endpoint == 'notifications' %}active{% endif %}">Notifications</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/matrix.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akuma Web Scanner - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0d0d0d;
+            color: #00ff00;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image: radial-gradient(circle at 25% 25%, #2d5016 0%, #0d0d0d 50%);
+        }
+        
+        .login-container {
+            background: #1a1a1a;
+            border: 2px solid #00ff00;
+            border-radius: 10px;
+            padding: 40px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.4);
+            text-align: center;
+        }
+        
+        .login-title {
+            font-size: 2.5rem;
+            color: #ff0040;
+            text-shadow: 0 0 20px #ff0040;
+            margin-bottom: 30px;
+        }
+        
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .form-group {
+            text-align: left;
+        }
+        
+        .form-label {
+            display: block;
+            color: #00ff00;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            background: #0d0d0d;
+            border: 2px solid #333;
+            border-radius: 5px;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #00ff00;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+        }
+        
+        .login-btn {
+            background: linear-gradient(45deg, #ff0040, #ff4080);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .login-btn:hover {
+            background: linear-gradient(45deg, #cc0033, #cc3366);
+            box-shadow: 0 0 20px rgba(255, 0, 64, 0.6);
+        }
+        
+        .error-message {
+            color: #ff0000;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid #ff0000;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .default-creds {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-title">👹 AKUMA</div>
+        
+        <form class="login-form" id="loginForm">
+            <div class="form-group">
+                <label class="form-label">Username:</label>
+                <input type="text" class="form-input" id="username" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Password:</label>
+                <input type="password" class="form-input" id="password" required>
+            </div>
+            
+            <button type="submit" class="login-btn">LOGIN</button>
+        </form>
+        
+        <div class="error-message" id="errorMessage"></div>
+        
+        <div class="default-creds">
+            <strong>Default Credentials:</strong><br>
+            Username: admin<br>
+            Password: admin123
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('errorMessage');
+            
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    window.location.href = data.redirect || '/';
+                } else {
+                    errorDiv.textContent = data.message || 'Login failed';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Network error: ' + error.message;
+                errorDiv.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
