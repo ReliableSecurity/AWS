@@ -638,21 +638,3 @@ if __name__ == '__main__':
     print("[+] Improved commands: subfinder, feroxbuster, advanced nmap")
     print("[+] Ready for advanced pentesting!")
     app.run(host='0.0.0.0', port=5000, debug=True, threaded=True)
-
-# Adding vulnerability detection phase to existing logic
-
-# Adding vulnerability scanning to scan function
-def run_vulnerability_scan(targets):
-    for target in targets:
-        ip, port = target.split(':')
-        cmd = ['nuclei', '-u', f'http://{ip}:{port}']
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = process.communicate()
-        print(out.decode())
-        if err:
-            print(err.decode())
-
-def run_scan_with_vulnerability_detection(targets):
-    # Assuming targets is a list with format 'ip:port'
-    run_vulnerability_scan(targets)
-

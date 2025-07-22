@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  akuma-scanner:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+    volumes:
+      - ./instance:/app/instance
+      - ./scans:/app/scans
+    networks:
+      - akuma-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - akuma-network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - akuma-scanner
+    networks:
+      - akuma-network
+
+networks:
+  akuma-network:
+    driver: bridge

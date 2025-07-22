@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Scanning - Akuma Scanner</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Advanced Scanning Features</h1>
+        
+        <div class="advanced-tabs">
+            <button class="tab-button active" data-tab="vulnerability">Vulnerability Scan</button>
+            <button class="tab-button" data-tab="ssl">SSL/TLS Analysis</button>
+            <button class="tab-button" data-tab="cms">CMS Detection</button>
+            <button class="tab-button" data-tab="scheduling">Scan Scheduling</button>
+            <button class="tab-button" data-tab="comparison">Scan Comparison</button>
+        </div>
+        
+        <div class="tab-content active" id="vulnerability">
+            <h2>🎯 Vulnerability Detection</h2>
+            <form id="vulnerability-form">
+                <div class="form-group">
+                    <label>Target URL/IP:</label>
+                    <input type="text" id="vuln-target" placeholder="http://example.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Scan Type:</label>
+                    <select id="vuln-type">
+                        <option value="nuclei">Nuclei (All Templates)</option>
+                        <option value="sqli">SQL Injection</option>
+                        <option value="xss">XSS Detection</option>
+                        <option value="lfi">Local File Inclusion</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary">Start Vulnerability Scan</button>
+            </form>
+        </div>
+        
+        <div class="tab-content" id="ssl">
+            <h2>🔒 SSL/TLS Certificate Analysis</h2>
+            <form id="ssl-form">
+                <div class="form-group">
+                    <label>Host:</label>
+                    <input type="text" id="ssl-host" placeholder="example.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Port:</label>
+                    <input type="number" id="ssl-port" value="443" required>
+                </div>
+                <button type="submit" class="btn-primary">Analyze SSL/TLS</button>
+            </form>
+            <div id="ssl-results" class="results-container"></div>
+        </div>
+        
+        <div class="tab-content" id="cms">
+            <h2>🎨 CMS Detection</h2>
+            <form id="cms-form">
+                <div class="form-group">
+                    <label>Website URL:</label>
+                    <input type="url" id="cms-url" placeholder="http://example.com" required>
+                </div>
+                <button type="submit" class="btn-primary">Detect CMS</button>
+            </form>
+            <div id="cms-results" class="results-container"></div>
+        </div>
+        
+        <div class="tab-content" id="scheduling">
+            <h2>⏰ Scan Scheduling</h2>
+            <form id="schedule-form">
+                <div class="form-group">
+                    <label>Select Scan:</label>
+                    <select id="schedule-scan-id" required>
+                        <option value="">Select a scan...</option>
+                        {% for scan in scans %}
+                        <option value="{{ scan.id }}">{{ scan.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Cron Expression:</label>
+                    <input type="text" id="cron-expression" placeholder="0 2 * * *" required>
+                    <small>Format: minute hour day month day-of-week</small>
+                </div>
+                <button type="submit" class="btn-primary">Schedule Scan</button>
+            </form>
+        </div>
+        
+        <div class="tab-content" id="comparison">
+            <h2>📊 Scan Comparison</h2>
+            <form id="comparison-form">
+                <div class="form-group">
+                    <label>First Scan:</label>
+                    <select id="compare-scan1" required>
+                        <option value="">Select first scan...</option>
+                        {% for scan in scans %}
+                        <option value="{{ scan.id }}">{{ scan.name }} ({{ scan.created_at }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Second Scan:</label>
+                    <select id="compare-scan2" required>
+                        <option value="">Select second scan...</option>
+                        {% for scan in scans %}
+                        <option value="{{ scan.id }}">{{ scan.name }} ({{ scan.created_at }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary">Compare Scans</button>
+            </form>
+            <div id="comparison-results" class="results-container"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Tab switching functionality
+        document.querySelectorAll(".tab-button").forEach(button => {
+            button.addEventListener("click", () => {
+                const tab = button.getAttribute("data-tab");
+                
+                document.querySelectorAll(".tab-button").forEach(btn => btn.classList.remove("active"));
+                document.querySelectorAll(".tab-content").forEach(content => content.classList.remove("active"));
+                
+                button.classList.add("active");
+                document.getElementById(tab).classList.add("active");
+            });
+        });
+        
+        // Form submissions
+        document.getElementById("vulnerability-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const target = document.getElementById("vuln-target").value;
+            const type = document.getElementById("vuln-type").value;
+            
+            // Implement vulnerability scan API call
+            console.log("Starting vulnerability scan:", target, type);
+        });
+        
+        document.getElementById("cms-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const url = document.getElementById("cms-url").value;
+            
+            const response = await fetch("/api/cms_detection", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({url: url})
+            });
+            
+            const result = await response.json();
+            document.getElementById("cms-results").innerHTML = `<p>Detected CMS: <strong>${result.cms.toUpperCase()}</strong></p>`;
+        });
+        
+        document.getElementById("schedule-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const scanId = document.getElementById("schedule-scan-id").value;
+            const cronExpression = document.getElementById("cron-expression").value;
+            
+            const response = await fetch("/api/schedule_scan", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({scan_id: scanId, cron_expression: cronExpression})
+            });
+            
+            const result = await response.json();
+            alert("Scan scheduled successfully!");
+        });
+        
+        document.getElementById("comparison-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const scan1Id = document.getElementById("compare-scan1").value;
+            const scan2Id = document.getElementById("compare-scan2").value;
+            
+            const response = await fetch("/api/compare_scans", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({scan1_id: scan1Id, scan2_id: scan2Id})
+            });
+            
+            const comparison = await response.json();
+            
+            let resultsHTML = `
+                <h3>Comparison Results</h3>
+                <div class="comparison-section">
+                    <h4>New Ports: ${comparison.new_ports.length}</h4>
+                    <ul>${comparison.new_ports.map(port => `<li>${port}</li>`).join()}</ul>
+                </div>
+                <div class="comparison-section">
+                    <h4>New Vulnerabilities: ${comparison.new_vulnerabilities.length}</h4>
+                    <ul>${comparison.new_vulnerabilities.map(vuln => `<li>${vuln}</li>`).join()}</ul>
+                </div>
+            `;
+            
+            document.getElementById("comparison-results").innerHTML = resultsHTML;
+        });
+    </script>
+</body>
+</html>

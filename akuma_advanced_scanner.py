@@ -656,3 +656,315 @@ def run_scan_with_vulnerability_detection(targets):
     # Assuming targets is a list with format 'ip:port'
     run_vulnerability_scan(targets)
 
+
+# CMS Detection
+def detect_cms(url):
+    cms_signatures = {
+        'wordpress': ['/wp-content/', '/wp-admin/', '/wp-includes/'],
+        'joomla': ['/administrator/', '/components/', '/modules/'],
+        'drupal': ['/sites/default/', '/modules/', '/themes/'],
+        'magento': ['/app/', '/skin/', '/js/mage/']
+    }
+    
+    for cms, signatures in cms_signatures.items():
+        for sig in signatures:
+            try:
+                response = requests.get(url + sig, timeout=5)
+                if response.status_code == 200:
+                    print(f'Detected CMS: {cms.upper()}')
+                    return cms
+            except:
+                pass
+    return 'unknown'
+
+
+# Advanced Fuzzing
+def run_parameter_fuzzing(url, parameters):
+    payloads = ['<script>alert(1)</script>', '\'"OR 1=1--', '../../../etc/passwd']
+    
+    for param in parameters:
+        for payload in payloads:
+            data = {param: payload}
+            try:
+                response = requests.post(url, data=data, timeout=5)
+                if 'error' in response.text.lower() or 'sql' in response.text.lower():
+                    print(f'Potential vulnerability found in parameter {param}')
+            except:
+                pass
+
+def run_header_fuzzing(url):
+    headers_to_fuzz = ['X-Forwarded-For', 'User-Agent', 'Referer', 'X-Real-IP']
+    payloads = ['<script>alert(1)</script>', '\'"OR 1=1--', '../../../etc/passwd']
+    
+    for header in headers_to_fuzz:
+        for payload in payloads:
+            headers = {header: payload}
+            try:
+                response = requests.get(url, headers=headers, timeout=5)
+                if 'error' in response.text.lower():
+                    print(f'Potential vulnerability found in header {header}')
+            except:
+                pass
+
+
+# Notification System
+import smtplib
+from email.mime.text import MimeText
+from email.mime.multipart import MimeMultipart
+
+class NotificationSystem:
+    def __init__(self):
+        self.email_config = {
+            'smtp_server': 'smtp.gmail.com',
+            'smtp_port': 587,
+            'username': '',  # To be configured
+            'password': ''   # To be configured
+        }
+    
+    def send_email_notification(self, recipient, subject, message):
+        try:
+            msg = MimeMultipart()
+            msg['From'] = self.email_config['username']
+            msg['To'] = recipient
+            msg['Subject'] = subject
+            
+            msg.attach(MimeText(message, 'plain'))
+            
+            server = smtplib.SMTP(self.email_config['smtp_server'], self.email_config['smtp_port'])
+            server.starttls()
+            server.login(self.email_config['username'], self.email_config['password'])
+            text = msg.as_string()
+            server.sendmail(self.email_config['username'], recipient, text)
+            server.quit()
+            print(f'Email notification sent to {recipient}')
+        except Exception as e:
+            print(f'Failed to send email: {e}')
+    
+    def send_telegram_notification(self, bot_token, chat_id, message):
+        try:
+            url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
+            data = {'chat_id': chat_id, 'text': message}
+            requests.post(url, data=data)
+            print('Telegram notification sent')
+        except Exception as e:
+            print(f'Failed to send Telegram notification: {e}')
+
+notification_system = NotificationSystem()
+
+
+# Scan Scheduling
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+import atexit
+
+scheduler = BackgroundScheduler()
+scheduler.start()
+atexit.register(lambda: scheduler.shutdown())
+
+def schedule_scan(scan_id, cron_expression):
+    """Schedule a scan using cron expression"""
+    def scheduled_scan_job():
+        scan = Scan.query.get(scan_id)
+        if scan:
+            targets = json.loads(scan.targets)
+            run_comprehensive_scan(scan_id, targets, {
+                'include_subdomains': scan.include_subdomains,
+                'fuzzing_depth': scan.fuzzing_depth,
+                'enable_bruteforce': scan.enable_bruteforce
+            })
+    
+    trigger = CronTrigger.from_crontab(cron_expression)
+    scheduler.add_job(scheduled_scan_job, trigger, id=f'scan_{scan_id}')
+    print(f'Scheduled scan {scan_id} with expression: {cron_expression}')
+
+def cancel_scheduled_scan(scan_id):
+    """Cancel a scheduled scan"""
+    try:
+        scheduler.remove_job(f'scan_{scan_id}')
+        print(f'Cancelled scheduled scan {scan_id}')
+    except:
+        print(f'No scheduled scan found for ID {scan_id}')
+
+
+# JWT Authentication
+from functools import wraps
+import jwt
+from datetime import datetime, timedelta
+
+JWT_SECRET = 'akuma_jwt_secret_key_2024'
+JWT_ALGORITHM = 'HS256'
+
+def generate_jwt_token(user_id):
+    payload = {
+        'user_id': user_id,
+        'exp': datetime.utcnow() + timedelta(hours=24)
+    }
+    token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return token
+
+def verify_jwt_token(token):
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload['user_id']
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+def jwt_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        if not token:
+            return jsonify({'error': 'Token missing'}), 401
+        
+        if token.startswith('Bearer '):
+            token = token[7:]
+        
+        user_id = verify_jwt_token(token)
+        if not user_id:
+            return jsonify({'error': 'Invalid or expired token'}), 401
+        
+        return f(user_id, *args, **kwargs)
+    return decorated
+
+
+# Scan Comparison System
+def compare_scans(scan1_id, scan2_id):
+    """Compare two scans and highlight differences"""
+    scan1 = Scan.query.get(scan1_id)
+    scan2 = Scan.query.get(scan2_id)
+    
+    if not scan1 or not scan2:
+        return {'error': 'One or both scans not found'}
+    
+    results1 = ScanResult.query.filter_by(scan_id=scan1_id).all()
+    results2 = ScanResult.query.filter_by(scan_id=scan2_id).all()
+    
+    # Convert to dictionaries for easier comparison
+    ports1 = {r.port: r for r in results1 if r.result_type == 'port'}
+    ports2 = {r.port: r for r in results2 if r.result_type == 'port'}
+    
+    vulns1 = {r.data: r for r in results1 if r.result_type == 'vulnerability'}
+    vulns2 = {r.data: r for r in results2 if r.result_type == 'vulnerability'}
+    
+    comparison = {
+        'new_ports': [p for p in ports2.keys() if p not in ports1.keys()],
+        'closed_ports': [p for p in ports1.keys() if p not in ports2.keys()],
+        'new_vulnerabilities': [v for v in vulns2.keys() if v not in vulns1.keys()],
+        'fixed_vulnerabilities': [v for v in vulns1.keys() if v not in vulns2.keys()],
+        'scan1_date': scan1.started_at,
+        'scan2_date': scan2.started_at
+    }
+    
+    return comparison
+
+def generate_comparison_report(comparison):
+    """Generate HTML report for scan comparison"""
+    html_report = f'''
+    <html>
+    <head><title>Scan Comparison Report</title></head>
+    <body>
+        <h1>Scan Comparison Report</h1>
+        <p>Scan 1: {comparison['scan1_date']}</p>
+        <p>Scan 2: {comparison['scan2_date']}</p>
+        
+        <h2>New Ports Discovered</h2>
+        <ul>{''.join([f'<li>{port}</li>' for port in comparison['new_ports']])}</ul>
+        
+        <h2>Closed Ports</h2>
+        <ul>{''.join([f'<li>{port}</li>' for port in comparison['closed_ports']])}</ul>
+        
+        <h2>New Vulnerabilities</h2>
+        <ul>{''.join([f'<li>{vuln}</li>' for vuln in comparison['new_vulnerabilities']])}</ul>
+        
+        <h2>Fixed Vulnerabilities</h2>
+        <ul>{''.join([f'<li>{vuln}</li>' for vuln in comparison['fixed_vulnerabilities']])}</ul>
+    </body>
+    </html>
+    '''
+    return html_report
+
+
+# New API Routes for Advanced Features
+
+@app.route('/api/schedule_scan', methods=['POST'])
+@jwt_required
+def api_schedule_scan(user_id):
+    data = request.get_json()
+    scan_id = data.get('scan_id')
+    cron_expression = data.get('cron_expression')
+    
+    if not scan_id or not cron_expression:
+        return jsonify({'error': 'scan_id and cron_expression required'}), 400
+    
+    schedule_scan(scan_id, cron_expression)
+    return jsonify({'status': 'scheduled', 'scan_id': scan_id})
+
+@app.route('/api/compare_scans', methods=['POST'])
+@jwt_required
+def api_compare_scans(user_id):
+    data = request.get_json()
+    scan1_id = data.get('scan1_id')
+    scan2_id = data.get('scan2_id')
+    
+    if not scan1_id or not scan2_id:
+        return jsonify({'error': 'Both scan IDs required'}), 400
+    
+    comparison = compare_scans(scan1_id, scan2_id)
+    return jsonify(comparison)
+
+@app.route('/api/send_notification', methods=['POST'])
+@jwt_required
+def api_send_notification(user_id):
+    data = request.get_json()
+    notification_type = data.get('type')  # 'email' or 'telegram'
+    
+    if notification_type == 'email':
+        recipient = data.get('recipient')
+        subject = data.get('subject')
+        message = data.get('message')
+        notification_system.send_email_notification(recipient, subject, message)
+    elif notification_type == 'telegram':
+        bot_token = data.get('bot_token')
+        chat_id = data.get('chat_id')
+        message = data.get('message')
+        notification_system.send_telegram_notification(bot_token, chat_id, message)
+    
+    return jsonify({'status': 'notification_sent'})
+
+@app.route('/api/jwt_token', methods=['POST'])
+def get_jwt_token():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    
+    user = User.query.filter_by(username=username).first()
+    if user and check_password_hash(user.password_hash, password):
+        token = generate_jwt_token(user.id)
+        return jsonify({'token': token})
+    
+    return jsonify({'error': 'Invalid credentials'}), 401
+
+@app.route('/api/cms_detection', methods=['POST'])
+@jwt_required
+def api_cms_detection(user_id):
+    data = request.get_json()
+    url = data.get('url')
+    
+    if not url:
+        return jsonify({'error': 'URL required'}), 400
+    
+    cms = detect_cms(url)
+    return jsonify({'cms': cms, 'url': url})
+
+
+# Advanced Features Route
+@app.route('/advanced')
+def advanced_features():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    scans = Scan.query.all()
+    return render_template('advanced_features.html', scans=scans)
+

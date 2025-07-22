@@ -1464,3 +1464,165 @@ body {
     }
 }
 
+
+/* Advanced Features Styles */
+.advanced-tabs {
+    display: flex;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #00ff00;
+}
+
+.tab-button {
+    background: transparent;
+    color: #00ff00;
+    border: none;
+    padding: 1rem 2rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+    font-family: 'Courier New', monospace;
+}
+
+.tab-button:hover {
+    background: rgba(0, 255, 0, 0.1);
+}
+
+.tab-button.active {
+    border-bottom-color: #00ff00;
+    color: #ffffff;
+    background: rgba(0, 255, 0, 0.1);
+}
+
+.tab-content {
+    display: none;
+    animation: fadeIn 0.5s ease;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.results-container {
+    margin-top: 2rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid #00ff00;
+    border-radius: 5px;
+    color: #00ff00;
+    font-family: 'Courier New', monospace;
+}
+
+.comparison-section {
+    margin: 1rem 0;
+    padding: 1rem;
+    border-left: 3px solid #00ff00;
+    background: rgba(0, 255, 0, 0.05);
+}
+
+.comparison-section h4 {
+    color: #ffffff;
+    margin-bottom: 0.5rem;
+}
+
+.comparison-section ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.comparison-section li {
+    margin: 0.3rem 0;
+    color: #00ff00;
+}
+
+/* Vulnerability scan results */
+.vuln-item {
+    background: rgba(255, 0, 0, 0.1);
+    border-left: 3px solid #ff0000;
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 5px;
+}
+
+.vuln-high { border-left-color: #ff0000; }
+.vuln-medium { border-left-color: #ff9900; }
+.vuln-low { border-left-color: #ffff00; }
+.vuln-info { border-left-color: #00ffff; }
+
+/* SSL Certificate display */
+.ssl-cert {
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid #00ffff;
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 5px;
+    font-family: 'Courier New', monospace;
+}
+
+.ssl-valid { border-color: #00ff00; }
+.ssl-expired { border-color: #ff0000; }
+.ssl-warning { border-color: #ff9900; }
+
+/* Scheduling interface */
+.schedule-preview {
+    background: rgba(0, 255, 0, 0.05);
+    border: 1px dashed #00ff00;
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 5px;
+    font-family: 'Courier New', monospace;
+}
+
+/* CMS detection badges */
+.cms-badge {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin: 0.2rem;
+}
+
+.cms-wordpress { background: #21759b; color: white; }
+.cms-joomla { background: #5091cd; color: white; }
+.cms-drupal { background: #0678be; color: white; }
+.cms-magento { background: #ee672f; color: white; }
+.cms-unknown { background: #666; color: white; }
+
+/* Progress indicators for advanced scans */
+.advanced-progress {
+    position: relative;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 1rem 0;
+}
+
+.advanced-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #00ff00, #00ffff, #0099ff);
+    width: 0%;
+    transition: width 0.3s ease;
+    position: relative;
+}
+
+.advanced-progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: scanProgress 2s linear infinite;
+}
+
+@keyframes scanProgress {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
