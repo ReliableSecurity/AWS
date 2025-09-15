@@ -1,4 +1,4 @@
-# 🔥 Akuma Web Scanner (AWS) - Advanced Pentest Framework
+# 🔥 Web Scanner (AWS) - Advanced Pentest Framework
 
 ![Akuma Banner](https://img.shields.io/badge/Akuma-Web%20Scanner-red?style=for-the-badge&logo=hackthebox&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge&logo=python)
@@ -173,11 +173,6 @@ feroxbuster --url http://target -w wordlist -t 50 -x php,html,txt,js
 - **subfinder** - Отличный инструмент для поиска поддоменов  
 - **nmap** - Король сканеров портов
 - **feroxbuster** - Быстрый directory fuzzer
-
-## 📧 Контакты
-
-**Author**: sweetpotatohack  
-**GitHub**: [@sweetpotatohack](https://github.com/sweetpotatohack)
 
 ---
 
